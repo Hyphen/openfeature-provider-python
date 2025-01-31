@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "openfeature-provider-python"
+version = "0.1.0"
+description = "Hyphen provider for OpenFeature Python SDK"
+authors = ["Your Name <your.email@example.com>"]
+packages = [
+    { include = "openfeature_provider_hyphen", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+openfeature-sdk = "0.7.4"
+requests = "^2.31.0"
+cachetools = "^5.3.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+black = "^23.7.0"
+isort = "^5.12.0"
+mypy = "^1.5.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
