@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 from openfeature.evaluation_context import EvaluationContext
-from openfeature.flag_evaluation import ResolutionReason
+from openfeature.flag_evaluation import Reason
 
 @dataclass
 class HyphenProviderOptions:
@@ -36,7 +36,7 @@ class Evaluation:
     key: str
     value: Union[bool, str, int, float, Dict[str, Any], List[Any]]
     type: str  # 'boolean' | 'string' | 'number' | 'object'
-    reason: Optional[ResolutionReason] = None
+    reason: Optional[Reason] = None
     error_message: Optional[str] = None
     variant: Optional[str] = None
 

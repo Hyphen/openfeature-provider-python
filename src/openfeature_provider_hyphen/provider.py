@@ -5,7 +5,7 @@ from openfeature.evaluation_context import EvaluationContext
 from openfeature.flag_evaluation import (
     FlagResolutionDetails,
     FlagEvaluationDetails,
-    ResolutionReason,
+    Reason,
 )
 from openfeature.hook import Hook, HookContext
 from openfeature.provider import Metadata, AbstractProvider
@@ -125,7 +125,7 @@ class HyphenProvider(AbstractProvider):
         """Create an error resolution for wrong type."""
         return FlagResolutionDetails(
             value=value,
-            reason=ResolutionReason.ERROR,
+            reason=Reason.ERROR,
             error_code=ErrorCode.TYPE_MISMATCH
         )
 
@@ -156,7 +156,7 @@ class HyphenProvider(AbstractProvider):
                 logger.error(f"Error evaluating flag {flag_key}", exc_info=error)
             return FlagResolutionDetails(
                 value=default_value,
-                reason=ResolutionReason.ERROR,
+                reason=Reason.ERROR,
                 error_code=ErrorCode.GENERAL
             )
 
@@ -173,7 +173,7 @@ class HyphenProvider(AbstractProvider):
             return FlagResolutionDetails(
                 value=bool(result.value),
                 variant=str(result.value),
-                reason=result.reason or ResolutionReason.STATIC
+                reason=result.reason or Reason.STATIC
             )
         return result
 
@@ -190,7 +190,7 @@ class HyphenProvider(AbstractProvider):
             return FlagResolutionDetails(
                 value=str(result.value),
                 variant=str(result.value),
-                reason=result.reason or ResolutionReason.STATIC
+                reason=result.reason or Reason.STATIC
             )
         return result
 
@@ -207,7 +207,7 @@ class HyphenProvider(AbstractProvider):
             return FlagResolutionDetails(
                 value=int(result.value),
                 variant=str(result.value),
-                reason=result.reason or ResolutionReason.STATIC
+                reason=result.reason or Reason.STATIC
             )
         return result
 
@@ -224,7 +224,7 @@ class HyphenProvider(AbstractProvider):
             return FlagResolutionDetails(
                 value=float(result.value),
                 variant=str(result.value),
-                reason=result.reason or ResolutionReason.STATIC
+                reason=result.reason or Reason.STATIC
             )
         return result
 
@@ -241,6 +241,6 @@ class HyphenProvider(AbstractProvider):
             return FlagResolutionDetails(
                 value=result.value,
                 variant=str(result.value),
-                reason=result.reason or ResolutionReason.STATIC
+                reason=result.reason or Reason.STATIC
             )
         return result
