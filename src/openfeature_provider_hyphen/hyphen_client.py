@@ -1,8 +1,8 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 import requests
 
-from .types import EvaluationResponse, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload
+from .types import EvaluationResponse, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload, Evaluation
 from .cache_client import CacheClient
 from .utils import build_default_horizon_url, build_url
 
@@ -79,7 +79,21 @@ class HyphenClient:
 
         # Make API request
         response = self._try_urls('/toggle/evaluate', context.__dict__, logger)
-        evaluation_response = EvaluationResponse(**response.json())
+        response_data = response.json()
+        
+        # Convert raw response to EvaluationResponse
+        toggles = {}
+        for key, value in response_data.get('toggles', {}).items():
+            toggles[key] = Evaluation(
+                key=key,
+                value=value.get('value'),
+                type=value.get('type'),
+                reason=value.get('reason'),
+                error_message=value.get('errorMessage'),
+                variant=value.get('variant')
+            )
+        
+        evaluation_response = EvaluationResponse(toggles=toggles)
 
         # Cache the response
         if evaluation_response:

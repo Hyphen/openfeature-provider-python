@@ -1,12 +1,14 @@
 import base64
 import re
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 
 def get_org_id_from_public_key(public_key: str) -> str:
     """Extract organization ID from public key."""
     try:
         key_without_prefix = public_key.replace('public_', '', 1)
-        decoded = base64.b64decode(key_without_prefix).decode('utf-8')
+        # Convert hex string back to bytes before base64 decoding
+        key_bytes = bytes.fromhex(key_without_prefix)
+        decoded = base64.b64encode(key_bytes).decode('utf-8')
         org_id = decoded.split(':')[0]
         if re.match(r'^[a-zA-Z0-9_-]+$', org_id):
             return org_id

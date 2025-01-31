@@ -21,14 +21,15 @@ class HyphenUser:
     custom_attributes: Optional[Dict[str, Any]] = None
 
 @dataclass
-class HyphenEvaluationContext(EvaluationContext):
+class HyphenEvaluationContext:
     """Extended evaluation context for Hyphen provider."""
+    targeting_key: str
+    attributes: Dict[str, Any] = field(default_factory=dict)
     ip_address: Optional[str] = None
     custom_attributes: Optional[Dict[str, Any]] = None
     user: Optional[HyphenUser] = None
     application: Optional[str] = None
     environment: Optional[str] = None
-    targeting_key: str = field(default="")
 
 @dataclass
 class Evaluation:

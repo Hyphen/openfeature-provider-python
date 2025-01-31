@@ -68,7 +68,7 @@ class HyphenProvider(AbstractProvider):
                 if not isinstance(context, HyphenEvaluationContext):
                     context = HyphenEvaluationContext(
                         targeting_key=context.targeting_key,
-                        **context.__dict__
+                        attributes=context.attributes
                     )
 
                 payload = TelemetryPayload(
@@ -105,21 +105,23 @@ class HyphenProvider(AbstractProvider):
         if context is None:
             context = EvaluationContext()
 
-        if not isinstance(context, HyphenEvaluationContext):
-            context = HyphenEvaluationContext(
-                targeting_key=self._get_targeting_key(context),
-                **context.__dict__
+        targeting_key = self._get_targeting_key(context)
+        attributes = context.attributes if hasattr(context, 'attributes') else {}
+
+        if isinstance(context, HyphenEvaluationContext):
+            # Update existing HyphenEvaluationContext
+            context.targeting_key = targeting_key
+            context.application = self.options.application
+            context.environment = self.options.environment
+            return context
+        else:
+            # Create new HyphenEvaluationContext
+            return HyphenEvaluationContext(
+                targeting_key=targeting_key,
+                attributes=attributes,
+                application=self.options.application,
+                environment=self.options.environment
             )
-
-        context.targeting_key = self._get_targeting_key(context)
-        
-        # Add provider options
-        context.__dict__.update({
-            'application': self.options.application,
-            'environment': self.options.environment,
-        })
-
-        return context
 
     def _wrong_type(self, value: Any) -> FlagResolutionDetails:
         """Create an error resolution for wrong type."""

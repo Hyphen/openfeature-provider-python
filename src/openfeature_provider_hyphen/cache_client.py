@@ -1,6 +1,7 @@
 import hashlib
 import json
-from typing import Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
+from dataclasses import asdict
 
 from cachetools import TTLCache
 
@@ -29,19 +30,21 @@ class CacheClient:
         """Generate a default cache key from the evaluation context.
         
         Args:
-            context: The evaluation context to generate a key fo
+            context: The evaluation context to generate a key for
+            
         Returns:
             A string hash of the context
         """
         # Convert context to a dictionary, excluding None values
         context_dict = {
-            k: v for k, v in context.__dict__.items() 
+            k: (asdict(v) if hasattr(v, '__dataclass_fields__') else v)
+            for k, v in context.__dict__.items() 
             if v is not None
         }
         
         # Sort dictionary to ensure consistent ordering
         context_str = json.dumps(context_dict, sort_keys=True)
-
+        
         # Generate SHA-256 hash
         return hashlib.sha256(context_str.encode()).hexdigest()
 
