@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from openfeature.evaluation_context import EvaluationContext
 from openfeature.flag_evaluation import Reason
 
 @dataclass

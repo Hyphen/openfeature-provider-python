@@ -1,6 +1,6 @@
 import hashlib
 import json
-from typing import Any, Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar
 from dataclasses import asdict
 
 from cachetools import TTLCache
