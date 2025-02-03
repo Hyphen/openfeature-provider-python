@@ -23,23 +23,12 @@ class HyphenUser:
 class HyphenEvaluationContext:
     """
     Extended evaluation context for Hyphen provider.
-    
-    The 'attributes' dictionary can contain:
-    - 'user': A dictionary with user details (id, email, name, custom_attributes)
-    - 'ip_address': A string representing the user's IP address
-    - 'custom_attributes': A dictionary of additional custom attributes
-    
-    Example structure:
-    attributes = {
-        'user': {
-            'id': 'user123',
-            'email': 'user@example.com',
-            'name': 'John Doe',
-            'custom_attributes': {'plan': 'premium'}
-        },
-        'ip_address': '192.168.1.1',
-        'custom_attributes': {'region': 'US'}
-    }
+    - 'targeting_key': A string representing the targeting key
+    - 'attributes': A dictionary of additional custom attributes
+        - 'user': A dictionary with user details (id, email, name, custom_attributes)
+        - 'ip_address': A string representing the user's IP address
+        - 'custom_attributes': A dictionary of additional custom attributes
+  
     """
     targeting_key: str
     attributes: Dict[str, Union[
