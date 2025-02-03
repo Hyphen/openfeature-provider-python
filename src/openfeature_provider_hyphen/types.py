@@ -21,14 +21,32 @@ class HyphenUser:
 
 @dataclass
 class HyphenEvaluationContext:
-    """Extended evaluation context for Hyphen provider."""
+    """
+    Extended evaluation context for Hyphen provider.
+    
+    The 'attributes' dictionary can contain:
+    - 'user': A dictionary with user details (id, email, name, custom_attributes)
+    - 'ip_address': A string representing the user's IP address
+    - 'custom_attributes': A dictionary of additional custom attributes
+    
+    Example structure:
+    attributes = {
+        'user': {
+            'id': 'user123',
+            'email': 'user@example.com',
+            'name': 'John Doe',
+            'custom_attributes': {'plan': 'premium'}
+        },
+        'ip_address': '192.168.1.1',
+        'custom_attributes': {'region': 'US'}
+    }
+    """
     targeting_key: str
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    ip_address: Optional[str] = None
-    custom_attributes: Optional[Dict[str, Any]] = None
-    user: Optional[HyphenUser] = None
-    application: Optional[str] = None
-    environment: Optional[str] = None
+    attributes: Dict[str, Union[
+        HyphenUser,  # user details
+        str,             # ip_address
+        Dict[str, Any]   # custom_attributes
+    ]] = field(default_factory=dict)
 
 @dataclass
 class Evaluation:
