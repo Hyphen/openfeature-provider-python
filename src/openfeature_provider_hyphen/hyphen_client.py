@@ -4,7 +4,7 @@ import requests
 
 from .types import EvaluationResponse, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload, Evaluation
 from .cache_client import CacheClient
-from .utils import build_default_horizon_url, build_url
+from .utils import build_default_horizon_url, build_url, transform_dict_keys
 
 class HyphenClient:
     """Client for interacting with the Hyphen API."""
@@ -77,8 +77,18 @@ class HyphenClient:
         if cached_response:
             return cached_response
 
+        # Prepare payload
+        payload = context.__dict__.copy()
+        if 'attributes' in payload and payload['attributes']:
+            attributes = payload.pop('attributes')
+            payload.update(attributes)
+        payload.pop('attributes', None)
+        
+        # Convert keys to camelCase
+        payload = transform_dict_keys(payload)
+
         # Make API request
-        response = self._try_urls('/toggle/evaluate', context.__dict__, logger)
+        response = self._try_urls('/toggle/evaluate', payload, logger)
         response_data = response.json()
         
         # Convert raw response to EvaluationResponse
@@ -112,4 +122,6 @@ class HyphenClient:
             payload: The telemetry payload to send
             logger: Optional logger for debug information
         """
-        self._try_urls('/toggle/telemetry', payload.__dict__, logger)
+        telemetry_payload = payload.__dict__.copy()
+        telemetry_payload = transform_dict_keys(telemetry_payload)
+        self._try_urls('/toggle/telemetry', telemetry_payload, logger)

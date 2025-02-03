@@ -1,4 +1,3 @@
-import logging
 from typing import Any, Dict, List, Optional, Union
 
 from openfeature.evaluation_context import EvaluationContext
@@ -82,7 +81,7 @@ class HyphenProvider(AbstractProvider):
                         hook_context.logger
                     )
                 except Exception as error:
-                    hook_context.logger.error("Unable to log usage", exc_info=error)
+                    print("Unable to log usage", error)
 
         return TelemetryHook(self)
 
@@ -106,22 +105,12 @@ class HyphenProvider(AbstractProvider):
             context = EvaluationContext()
 
         targeting_key = self._get_targeting_key(context)
-        attributes = context.attributes if hasattr(context, 'attributes') else {}
 
-        if isinstance(context, HyphenEvaluationContext):
-            # Update existing HyphenEvaluationContext
-            context.targeting_key = targeting_key
-            context.application = self.options.application
-            context.environment = self.options.environment
-            return context
-        else:
-            # Create new HyphenEvaluationContext
-            return HyphenEvaluationContext(
-                targeting_key=targeting_key,
-                attributes=attributes,
-                application=self.options.application,
-                environment=self.options.environment
-            )
+        # Update existing HyphenEvaluationContext
+        context.targeting_key = targeting_key
+        context.application = self.options.application
+        context.environment = self.options.environment
+        return context
 
     def _wrong_type(self, value: Any) -> FlagResolutionDetails:
         """Create an error resolution for wrong type."""
@@ -136,13 +125,12 @@ class HyphenProvider(AbstractProvider):
         flag_key: str,
         context: Optional[EvaluationContext],
         expected_type: str,
-        default_value: Any,
-        logger: Optional[logging.Logger]
+        default_value: Any
     ) -> Union[Evaluation, FlagResolutionDetails]:
         """Get flag evaluation from the client."""
         try:
             prepared_context = self._prepare_context(context)
-            response = self.hyphen_client.evaluate(prepared_context, logger)
+            response = self.hyphen_client.evaluate(prepared_context)
             evaluation = response.toggles.get(flag_key)
 
             if not evaluation or evaluation.error_message:
@@ -154,8 +142,7 @@ class HyphenProvider(AbstractProvider):
             return evaluation
 
         except Exception as error:
-            if logger:
-                logger.error(f"Error evaluating flag {flag_key}", exc_info=error)
+            print(f"Error evaluating flag {flag_key}", error)
             return FlagResolutionDetails(
                 value=default_value,
                 reason=Reason.ERROR,
@@ -166,11 +153,10 @@ class HyphenProvider(AbstractProvider):
         self,
         flag_key: str,
         default_value: bool,
-        context: Optional[EvaluationContext] = None,
-        logger: Optional[logging.Logger] = None
+        context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[bool]:
         """Resolve boolean flag values."""
-        result = self._get_evaluation(flag_key, context, "boolean", default_value, logger)
+        result = self._get_evaluation(flag_key, context, "boolean", default_value)
         if isinstance(result, Evaluation):
             return FlagResolutionDetails(
                 value=bool(result.value),
@@ -183,11 +169,10 @@ class HyphenProvider(AbstractProvider):
         self,
         flag_key: str,
         default_value: str,
-        context: Optional[EvaluationContext] = None,
-        logger: Optional[logging.Logger] = None
+        context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[str]:
         """Resolve string flag values."""
-        result = self._get_evaluation(flag_key, context, "string", default_value, logger)
+        result = self._get_evaluation(flag_key, context, "string", default_value)
         if isinstance(result, Evaluation):
             return FlagResolutionDetails(
                 value=str(result.value),
@@ -200,11 +185,10 @@ class HyphenProvider(AbstractProvider):
         self,
         flag_key: str,
         default_value: int,
-        context: Optional[EvaluationContext] = None,
-        logger: Optional[logging.Logger] = None
+        context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[int]:
         """Resolve integer flag values."""
-        result = self._get_evaluation(flag_key, context, "number", default_value, logger)
+        result = self._get_evaluation(flag_key, context, "number", default_value)
         if isinstance(result, Evaluation):
             return FlagResolutionDetails(
                 value=int(result.value),
@@ -217,11 +201,10 @@ class HyphenProvider(AbstractProvider):
         self,
         flag_key: str,
         default_value: float,
-        context: Optional[EvaluationContext] = None,
-        logger: Optional[logging.Logger] = None
+        context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[float]:
         """Resolve float flag values."""
-        result = self._get_evaluation(flag_key, context, "number", default_value, logger)
+        result = self._get_evaluation(flag_key, context, "number", default_value)
         if isinstance(result, Evaluation):
             return FlagResolutionDetails(
                 value=float(result.value),
@@ -234,11 +217,10 @@ class HyphenProvider(AbstractProvider):
         self,
         flag_key: str,
         default_value: Union[Dict, List],
-        context: Optional[EvaluationContext] = None,
-        logger: Optional[logging.Logger] = None
+        context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[Union[Dict, List]]:
         """Resolve object flag values."""
-        result = self._get_evaluation(flag_key, context, "object", default_value, logger)
+        result = self._get_evaluation(flag_key, context, "object", default_value)
         if isinstance(result, Evaluation):
             return FlagResolutionDetails(
                 value=result.value,

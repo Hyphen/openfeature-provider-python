@@ -1,6 +1,24 @@
 import base64
 import re
+from typing import Dict, Any
 from urllib.parse import urlparse
+
+def to_camel_case(snake_str: str) -> str:
+    """Convert snake_case string to camelCase."""
+    components = snake_str.split('_')
+    return components[0] + ''.join(x.title() for x in components[1:])
+
+def transform_dict_keys(d: Dict[str, Any]) -> Dict[str, Any]:
+    """Recursively transform all dictionary keys from snake_case to camelCase."""
+    new_dict = {}
+    for key, value in d.items():
+        new_key = to_camel_case(key)
+        if isinstance(value, dict):
+            value = transform_dict_keys(value)
+        elif isinstance(value, list):
+            value = [transform_dict_keys(item) if isinstance(item, dict) else item for item in value]
+        new_dict[new_key] = value
+    return new_dict
 
 def get_org_id_from_public_key(public_key: str) -> str:
     """Extract organization ID from public key."""
