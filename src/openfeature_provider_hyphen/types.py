@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from openfeature.flag_evaluation import Reason
+from openfeature.flag_evaluation import FlagResolutionDetails, FlagEvaluationDetails, Reason
 
 @dataclass
 class HyphenProviderOptions:
@@ -56,4 +56,4 @@ class EvaluationResponse:
 class TelemetryPayload:
     """Payload for telemetry data."""
     context: HyphenEvaluationContext
-    data: Dict[str, Evaluation]  # {'toggle': Evaluation}
+    data: Dict[str, FlagEvaluationDetails]  # {'toggle': FlagEvaluationDetails}

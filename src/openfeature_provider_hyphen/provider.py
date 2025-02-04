@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional, Union
 
 from openfeature.evaluation_context import EvaluationContext
@@ -54,15 +55,7 @@ class HyphenProvider(AbstractProvider):
                 self,
                 hook_context: HookContext,
                 details: FlagEvaluationDetails,
-                hints: Dict[str, Any]
             ) -> None:
-                evaluation = Evaluation(
-                    key=details.flag_key,
-                    value=details.value,
-                    type=hook_context.flag_value_type,
-                    reason=details.reason
-                )
-
                 context = hook_context.context
                 if not isinstance(context, HyphenEvaluationContext):
                     context = HyphenEvaluationContext(
@@ -72,14 +65,11 @@ class HyphenProvider(AbstractProvider):
 
                 payload = TelemetryPayload(
                     context=context,
-                    data={'toggle': evaluation}
+                    data={'toggle': details}
                 )
 
                 try:
-                    self.provider.hyphen_client.post_telemetry(
-                        payload,
-                        hook_context.logger
-                    )
+                    self.provider.hyphen_client.post_telemetry(payload)
                 except Exception as error:
                     print("Unable to log usage", error)
 
@@ -126,20 +116,35 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext],
         expected_type: str,
         default_value: Any
-    ) -> Union[Evaluation, FlagResolutionDetails]:
+    ) -> FlagResolutionDetails:
         """Get flag evaluation from the client."""
         try:
             prepared_context = self._prepare_context(context)
             response = self.hyphen_client.evaluate(prepared_context)
             evaluation = response.toggles.get(flag_key)
 
-            if not evaluation or evaluation.error_message:
-                raise ValueError(evaluation.error_message if evaluation else "Evaluation does not exist")
+            if not evaluation:
+                return FlagResolutionDetails(
+                    value=default_value,
+                    reason=Reason.DEFAULT
+                )
+
+            if evaluation.error_message:
+                return FlagResolutionDetails(
+                    value=default_value,
+                    reason=Reason.ERROR,
+                    error_code=ErrorCode.GENERAL,
+                    error_message=evaluation.error_message
+                )
 
             if evaluation.type != expected_type:
                 return self._wrong_type(default_value)
 
-            return evaluation
+            return FlagResolutionDetails(
+                value=evaluation.value,
+                variant=str(evaluation.value),
+                reason=evaluation.reason or Reason.STATIC
+            )
 
         except Exception as error:
             print(f"Error evaluating flag {flag_key}", error)
@@ -156,14 +161,7 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[bool]:
         """Resolve boolean flag values."""
-        result = self._get_evaluation(flag_key, context, "boolean", default_value)
-        if isinstance(result, Evaluation):
-            return FlagResolutionDetails(
-                value=bool(result.value),
-                variant=str(result.value),
-                reason=result.reason or Reason.STATIC
-            )
-        return result
+        return self._get_evaluation(flag_key, context, "boolean", default_value)
 
     def resolve_string_details(
         self,
@@ -172,14 +170,7 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[str]:
         """Resolve string flag values."""
-        result = self._get_evaluation(flag_key, context, "string", default_value)
-        if isinstance(result, Evaluation):
-            return FlagResolutionDetails(
-                value=str(result.value),
-                variant=str(result.value),
-                reason=result.reason or Reason.STATIC
-            )
-        return result
+        return self._get_evaluation(flag_key, context, "string", default_value)
 
     def resolve_integer_details(
         self,
@@ -188,14 +179,9 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[int]:
         """Resolve integer flag values."""
-        result = self._get_evaluation(flag_key, context, "number", default_value)
-        if isinstance(result, Evaluation):
-            return FlagResolutionDetails(
-                value=int(result.value),
-                variant=str(result.value),
-                reason=result.reason or Reason.STATIC
-            )
-        return result
+        details = self._get_evaluation(flag_key, context, "number", default_value)
+        details.value = int(details.value)
+        return details
 
     def resolve_float_details(
         self,
@@ -204,14 +190,9 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[float]:
         """Resolve float flag values."""
-        result = self._get_evaluation(flag_key, context, "number", default_value)
-        if isinstance(result, Evaluation):
-            return FlagResolutionDetails(
-                value=float(result.value),
-                variant=str(result.value),
-                reason=result.reason or Reason.STATIC
-            )
-        return result
+        details = self._get_evaluation(flag_key, context, "number", default_value)
+        details.value = float(details.value)
+        return details
 
     def resolve_object_details(
         self,
@@ -220,11 +201,14 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None
     ) -> FlagResolutionDetails[Union[Dict, List]]:
         """Resolve object flag values."""
-        result = self._get_evaluation(flag_key, context, "object", default_value)
-        if isinstance(result, Evaluation):
+        details = self._get_evaluation(flag_key, context, "object", default_value)
+        try:
+            if isinstance(details.value, str):
+                details.value = json.loads(details.value)
+            return details
+        except (json.JSONDecodeError, TypeError):
             return FlagResolutionDetails(
-                value=result.value,
-                variant=str(result.value),
-                reason=result.reason or Reason.STATIC
+                value=default_value,
+                reason=Reason.ERROR,
+                error_code=ErrorCode.PARSE_ERROR
             )
-        return result
