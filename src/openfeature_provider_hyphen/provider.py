@@ -7,9 +7,18 @@ from openfeature.flag_evaluation import (
     FlagEvaluationDetails,
     Reason,
 )
+from openfeature.exception import (
+    ErrorCode,
+    FlagNotFoundError,
+    GeneralError,
+    InvalidContextError,
+    OpenFeatureError,
+    ParseError,
+    TargetingKeyMissingError,
+    TypeMismatchError,
+)
 from openfeature.hook import Hook, HookContext
 from openfeature.provider import Metadata, AbstractProvider
-from openfeature.exception import ErrorCode
 
 from .types import Evaluation, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload
 from .hyphen_client import HyphenClient
@@ -118,41 +127,25 @@ class HyphenProvider(AbstractProvider):
         default_value: Any
     ) -> FlagResolutionDetails:
         """Get flag evaluation from the client."""
-        try:
-            prepared_context = self._prepare_context(context)
-            response = self.hyphen_client.evaluate(prepared_context)
-            evaluation = response.toggles.get(flag_key)
+        prepared_context = self._prepare_context(context)
+        response = self.hyphen_client.evaluate(prepared_context)
+        evaluation = response.toggles.get(flag_key)
 
-            if not evaluation:
-                return FlagResolutionDetails(
-                    value=default_value,
-                    reason=Reason.DEFAULT
-                )
+        if evaluation is None:
+            raise FlagNotFoundError('Flag not found')
 
-            if evaluation.error_message:
-                return FlagResolutionDetails(
-                    value=default_value,
-                    reason=Reason.ERROR,
-                    error_code=ErrorCode.GENERAL,
-                    error_message=evaluation.error_message
-                )
+        if evaluation.error_message:
+            raise GeneralError(str(evaluation.error_message))
+        
+        if evaluation.type != expected_type:
+            return self._wrong_type(default_value)
 
-            if evaluation.type != expected_type:
-                return self._wrong_type(default_value)
+        return FlagResolutionDetails(
+            value=evaluation.value,
+            variant=str(evaluation.value),
+            reason=evaluation.reason or Reason.STATIC
+        )
 
-            return FlagResolutionDetails(
-                value=evaluation.value,
-                variant=str(evaluation.value),
-                reason=evaluation.reason or Reason.STATIC
-            )
-
-        except Exception as error:
-            print(f"Error evaluating flag {flag_key}", error)
-            return FlagResolutionDetails(
-                value=default_value,
-                reason=Reason.ERROR,
-                error_code=ErrorCode.GENERAL
-            )
 
     def resolve_boolean_details(
         self,
@@ -209,6 +202,7 @@ class HyphenProvider(AbstractProvider):
         except (json.JSONDecodeError, TypeError):
             return FlagResolutionDetails(
                 value=default_value,
+                variant=str(default_value),
                 reason=Reason.ERROR,
                 error_code=ErrorCode.PARSE_ERROR
             )
