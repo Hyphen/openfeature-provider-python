@@ -11,16 +11,12 @@ from openfeature.exception import (
     ErrorCode,
     FlagNotFoundError,
     GeneralError,
-    InvalidContextError,
-    OpenFeatureError,
-    ParseError,
-    TargetingKeyMissingError,
     TypeMismatchError,
 )
 from openfeature.hook import Hook, HookContext
 from openfeature.provider import Metadata, AbstractProvider
 
-from .types import Evaluation, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload
+from .types import HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload
 from .hyphen_client import HyphenClient
 
 class HyphenProvider(AbstractProvider):
