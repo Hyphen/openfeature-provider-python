@@ -139,7 +139,7 @@ class HyphenProvider(AbstractProvider):
         return FlagResolutionDetails(
             value=evaluation.value,
             variant=str(evaluation.value),
-            reason=evaluation.reason or Reason.STATIC
+            reason=evaluation.reason or Reason.TARGETING_MATCH
         )
 
 
