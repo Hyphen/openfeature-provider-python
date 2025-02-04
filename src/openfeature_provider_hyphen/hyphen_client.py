@@ -1,5 +1,4 @@
-import logging
-from typing import Dict, Optional
+from typing import Dict
 import requests
 
 from .types import EvaluationResponse, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload, Evaluation
@@ -28,13 +27,12 @@ class HyphenClient:
             'x-api-key': public_key
         })
 
-    def _try_urls(self, url_path: str, payload: Dict, logger: Optional[logging.Logger] = None) -> requests.Response:
+    def _try_urls(self, url_path: str, payload: Dict) -> requests.Response:
         """Try to make a request to each URL until one succeeds.
         
         Args:
             url_path: The API endpoint path
             payload: The request payload
-            logger: Optional logger for debug information
             
         Returns:
             The successful response
@@ -52,16 +50,13 @@ class HyphenClient:
                 return response
             except Exception as error:
                 last_error = error
-                if logger:
-                    logger.debug(f'Failed to fetch: {url}', exc_info=error)
                 continue
         
         raise last_error or Exception("All URLs failed")
 
     def evaluate(
         self, 
-        context: HyphenEvaluationContext, 
-        logger: Optional[logging.Logger] = None
+        context: HyphenEvaluationContext
     ) -> EvaluationResponse:
         """Evaluate feature flags for the given context.
         
@@ -88,7 +83,7 @@ class HyphenClient:
         payload = transform_dict_keys(payload)
 
         # Make API request
-        response = self._try_urls('/toggle/evaluate', payload, logger)
+        response = self._try_urls('/toggle/evaluate', payload)
         response_data = response.json()
         
         # Convert raw response to EvaluationResponse
@@ -113,15 +108,13 @@ class HyphenClient:
 
     def post_telemetry(
         self, 
-        payload: TelemetryPayload,
-        logger: Optional[logging.Logger] = None
+        payload: TelemetryPayload
     ) -> None:
         """Send telemetry data to the API.
         
         Args:
             payload: The telemetry payload to send
-            logger: Optional logger for debug information
         """
         telemetry_payload = payload.__dict__.copy()
         telemetry_payload = transform_dict_keys(telemetry_payload)
-        self._try_urls('/toggle/telemetry', telemetry_payload, logger)
+        self._try_urls('/toggle/telemetry', telemetry_payload)
