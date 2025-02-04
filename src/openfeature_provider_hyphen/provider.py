@@ -113,7 +113,7 @@ class HyphenProvider(AbstractProvider):
 
     def _wrong_type(self, value: Any) -> FlagResolutionDetails:
         """Create an error resolution for wrong type."""
-        raise TypeMismatchError('Type mismatch')
+        raise TypeMismatchError()
     
     def _get_evaluation(
         self,
