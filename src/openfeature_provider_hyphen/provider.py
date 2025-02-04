@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional, Union
 from openfeature.evaluation_context import EvaluationContext
 from openfeature.flag_evaluation import (
     FlagResolutionDetails,
-    FlagEvaluationDetails,
     Reason,
 )
 from openfeature.exception import (
@@ -13,11 +12,12 @@ from openfeature.exception import (
     GeneralError,
     TypeMismatchError,
 )
-from openfeature.hook import Hook, HookContext
+from openfeature.hook import Hook
 from openfeature.provider import Metadata, AbstractProvider
 
-from .types import HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload
+from .types import HyphenEvaluationContext, HyphenProviderOptions
 from .hyphen_client import HyphenClient
+from .hooks import TelemetryHook
 
 class HyphenProvider(AbstractProvider):
     """OpenFeature provider implementation for Hyphen."""
@@ -52,37 +52,11 @@ class HyphenProvider(AbstractProvider):
 
     def _create_telemetry_hook(self) -> Hook:
         """Create a hook for telemetry tracking."""
-        class TelemetryHook(Hook):
-            def __init__(self, provider: 'HyphenProvider'):
-                self.provider = provider
-
-            def after(
-                self,
-                hook_context: HookContext,
-                details: FlagEvaluationDetails,
-            ) -> None:
-                context = hook_context.context
-                if not isinstance(context, HyphenEvaluationContext):
-                    context = HyphenEvaluationContext(
-                        targeting_key=context.targeting_key,
-                        attributes=context.attributes
-                    )
-
-                payload = TelemetryPayload(
-                    context=context,
-                    data={'toggle': details}
-                )
-
-                try:
-                    self.provider.hyphen_client.post_telemetry(payload)
-                except Exception as error:
-                    print("Unable to log usage", error)
-
         return TelemetryHook(self)
 
     def _get_targeting_key(self, context: EvaluationContext) -> str:
         """Get the targeting key from the context."""
-        if isinstance(context, HyphenEvaluationContext):
+        if isinstance(context, EvaluationContext):
             if context.targeting_key:
                 return context.targeting_key
             if context.user and context.user.id:
@@ -137,7 +111,6 @@ class HyphenProvider(AbstractProvider):
             variant=str(evaluation.value),
             reason=evaluation.reason or Reason.TARGETING_MATCH
         )
-
 
     def resolve_boolean_details(
         self,

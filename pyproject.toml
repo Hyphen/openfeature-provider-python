@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "openfeature-provider-python"
-version = "0.1.0"
+version = "1.0.0"
 description = "Hyphen provider for OpenFeature Python SDK"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Hyphen AI"]
 packages = [
     { include = "openfeature_provider_hyphen", from = "src" }
 ]
