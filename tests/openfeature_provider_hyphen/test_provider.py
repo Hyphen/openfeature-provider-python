@@ -1,14 +1,13 @@
 import pytest
 from unittest.mock import Mock, patch
-import logging
 from openfeature.evaluation_context import EvaluationContext
-from openfeature.flag_evaluation import Reason
+from openfeature.flag_evaluation import Reason, FlagResolutionDetails
+from openfeature.exception import TypeMismatchError, FlagNotFoundError, GeneralError
 
 from openfeature_provider_hyphen.provider import HyphenProvider
 from openfeature_provider_hyphen.types import (
     HyphenProviderOptions,
     HyphenEvaluationContext,
-    HyphenUser,
     Evaluation,
     EvaluationResponse,
     TelemetryPayload,
@@ -29,7 +28,7 @@ def mock_evaluation():
             key="test-flag",
             value=True,
             type="boolean",
-            reason=Reason.STATIC
+            reason=Reason.TARGETING_MATCH
         )
     }
 
@@ -71,73 +70,73 @@ def test_get_provider_hooks(provider):
     assert len(hooks) == 0
 
 def test_get_targeting_key(provider):
-    # Test with HyphenEvaluationContext and targeting key
+    # Test with targeting key
     context = HyphenEvaluationContext(targeting_key="user1")
     assert provider._get_targeting_key(context) == "user1"
     
-    # Test with HyphenEvaluationContext and user ID
-    context = HyphenEvaluationContext(
-        targeting_key="",
-        user=HyphenUser(id="user1")
-    )
-    assert provider._get_targeting_key(context) == "user1"
-    
-    # Test with standard EvaluationContext
-    context = EvaluationContext(targeting_key="user1")
-    assert provider._get_targeting_key(context) == "user1"
-    
     # Test with no targeting key (should generate one)
-    context = EvaluationContext()
+    context = HyphenEvaluationContext(targeting_key="")
     key = provider._get_targeting_key(context)
     assert provider.options.application in key
     assert provider.options.environment in key
 
 def test_prepare_context(provider):
     # Test with no context
-    context = provider._prepare_context()
+    context = provider._prepare_context(HyphenEvaluationContext(
+        targeting_key="",
+        attributes={
+            "application": provider.options.application,
+            "environment": provider.options.environment
+        }
+    ))
     assert isinstance(context, HyphenEvaluationContext)
-    assert context.application == provider.options.application
-    assert context.environment == provider.options.environment
-    
-    # Test with standard EvaluationContext
-    base_context = EvaluationContext(targeting_key="user1")
-    context = provider._prepare_context(base_context)
-    assert isinstance(context, HyphenEvaluationContext)
-    assert context.targeting_key == "user1"
-    assert context.application == provider.options.application
-    assert context.environment == provider.options.environment
+    assert provider.options.application in context.targeting_key
+    assert provider.options.environment in context.targeting_key
+    assert context.attributes["application"] == provider.options.application
+    assert context.attributes["environment"] == provider.options.environment
     
     # Test with HyphenEvaluationContext
     base_context = HyphenEvaluationContext(
         targeting_key="user1",
-        ip_address="127.0.0.1"
+        attributes={
+            "application": provider.options.application,
+            "environment": provider.options.environment
+        }
     )
     context = provider._prepare_context(base_context)
-    assert context.ip_address == "127.0.0.1"
-    assert context.application == provider.options.application
-    assert context.environment == provider.options.environment
+    assert isinstance(context, HyphenEvaluationContext)
+    assert context.targeting_key == "user1"
+    assert context.attributes["application"] == provider.options.application
+    assert context.attributes["environment"] == provider.options.environment
 
 @patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.evaluate")
 def test_resolve_boolean_details(mock_evaluate, provider, mock_evaluation):
     mock_evaluate.return_value = EvaluationResponse(toggles=mock_evaluation)
-    logger = logging.getLogger()
     
     # Test successful evaluation
-    result = provider.resolve_boolean_details("test-flag", False, None, logger)
+    result = provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
     assert result.value is True
-    assert result.reason == Reason.STATIC
+    assert result.reason == Reason.TARGETING_MATCH
     
     # Test wrong type
     mock_evaluation["test-flag"].type = "string"
-    result = provider.resolve_boolean_details("test-flag", False, None, logger)
-    assert result.value is False
-    assert result.reason == Reason.ERROR
+    with pytest.raises(TypeMismatchError):
+        provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
     
     # Test missing flag
     mock_evaluation.clear()
-    result = provider.resolve_boolean_details("test-flag", False, None, logger)
-    assert result.value is False
-    assert result.reason == Reason.ERROR
+    with pytest.raises(FlagNotFoundError):
+        provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
+    
+    # Test error message in evaluation
+    mock_evaluation["test-flag"] = Evaluation(
+        key="test-flag",
+        value=True,
+        type="boolean",
+        error_message="Test error"
+    )
+    with pytest.raises(GeneralError):
+        provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
 
 @patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.evaluate")
 def test_resolve_string_details(mock_evaluate, provider):
@@ -146,14 +145,13 @@ def test_resolve_string_details(mock_evaluate, provider):
             key="test-flag",
             value="test-value",
             type="string",
-            reason=Reason.STATIC
+            reason=Reason.TARGETING_MATCH
         )
     })
-    logger = logging.getLogger()
     
-    result = provider.resolve_string_details("test-flag", "default", None, logger)
+    result = provider.resolve_string_details("test-flag", "default", HyphenEvaluationContext(targeting_key="user1"))
     assert result.value == "test-value"
-    assert result.reason == Reason.STATIC
+    assert result.reason == Reason.TARGETING_MATCH
 
 @patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.evaluate")
 def test_resolve_number_details(mock_evaluate, provider):
@@ -162,60 +160,87 @@ def test_resolve_number_details(mock_evaluate, provider):
             key="test-flag",
             value=42,
             type="number",
-            reason=Reason.STATIC
+            reason=Reason.TARGETING_MATCH
         )
     })
-    logger = logging.getLogger()
     
     # Test integer
-    result = provider.resolve_integer_details("test-flag", 0, None, logger)
+    result = provider.resolve_integer_details("test-flag", 0, HyphenEvaluationContext(targeting_key="user1"))
     assert result.value == 42
-    assert result.reason == Reason.STATIC
+    assert result.reason == Reason.TARGETING_MATCH
     
     # Test float
-    result = provider.resolve_float_details("test-flag", 0.0, None, logger)
+    result = provider.resolve_float_details("test-flag", 0.0, HyphenEvaluationContext(targeting_key="user1"))
     assert result.value == 42.0
-    assert result.reason == Reason.STATIC
+    assert result.reason == Reason.TARGETING_MATCH
 
 @patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.evaluate")
 def test_resolve_object_details(mock_evaluate, provider):
     test_obj = {"key": "value"}
+    
+    # Test with dict object
     mock_evaluate.return_value = EvaluationResponse(toggles={
         "test-flag": Evaluation(
             key="test-flag",
             value=test_obj,
             type="object",
-            reason=Reason.STATIC
+            reason=Reason.TARGETING_MATCH
         )
     })
-    logger = logging.getLogger()
     
-    result = provider.resolve_object_details("test-flag", {}, None, logger)
+    result = provider.resolve_object_details("test-flag", {}, HyphenEvaluationContext(targeting_key="user1"))
     assert result.value == test_obj
-    assert result.reason == Reason.STATIC
+    assert result.reason == Reason.TARGETING_MATCH
+    
+    # Test with JSON string
+    mock_evaluate.return_value = EvaluationResponse(toggles={
+        "test-flag": Evaluation(
+            key="test-flag",
+            value='{"key": "value"}',
+            type="object",
+            reason=Reason.TARGETING_MATCH
+        )
+    })
+    
+    result = provider.resolve_object_details("test-flag", {}, HyphenEvaluationContext(targeting_key="user1"))
+    assert result.value == test_obj
+    assert result.reason == Reason.TARGETING_MATCH
 
 def test_telemetry_hook(provider):
     hook = provider._create_telemetry_hook()
     
     # Create mock context and details
-    context = Mock()
-    context.context = HyphenEvaluationContext(targeting_key="user1")
-    context.flag_value_type = "boolean"
+    context = EvaluationContext(targeting_key="user1")
     
-    details = Mock()
-    details.flag_key = "test-flag"
-    details.value = True
-    details.reason = Reason.STATIC
+    details = FlagResolutionDetails(
+        value=True,
+        variant="true",
+        reason=Reason.TARGETING_MATCH
+    )
+    details.flag_key = "test-flag"  # Set flag_key after initialization
+    
+    hook_context = Mock()
+    hook_context.evaluation_context = context
+    hints = {"flag_type": "boolean"}
     
     # Test hook execution
     with patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.post_telemetry") as mock_post:
-        hook.after(context, details, {})
+        hook.after(hook_context, details, hints)
         mock_post.assert_called_once()
         
         # Verify payload
         args = mock_post.call_args
         payload = args[0][0]
         assert isinstance(payload, TelemetryPayload)
-        assert payload.context.targeting_key == "user1"
-        assert payload.data["toggle"].key == "test-flag"
-        assert payload.data["toggle"].value is True
+        
+        # Verify context transformation
+        assert payload.context["targetingKey"] == "user1"
+        assert payload.context["application"] == provider.options.application
+        assert payload.context["environment"] == provider.options.environment
+        
+        # Verify telemetry details
+        toggle_data = payload.data["toggle"]
+        assert toggle_data["key"] == "test-flag"
+        assert toggle_data["type"] == "boolean"
+        assert toggle_data["value"] is True
+        assert toggle_data["reason"] == Reason.TARGETING_MATCH

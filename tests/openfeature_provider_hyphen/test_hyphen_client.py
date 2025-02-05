@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
 import requests
-import logging
 
 from openfeature_provider_hyphen.hyphen_client import HyphenClient
 from openfeature_provider_hyphen.types import (
@@ -55,9 +54,8 @@ def test_client_initialization():
 def test_evaluate_success(mock_post, client, mock_response):
     mock_post.return_value = mock_response
     context = HyphenEvaluationContext(targeting_key="user1")
-    logger = logging.getLogger()
 
-    response = client.evaluate(context, logger)
+    response = client.evaluate(context)
     
     assert isinstance(response, EvaluationResponse)
     assert "test-flag" in response.toggles
@@ -72,7 +70,7 @@ def test_evaluate_success(mock_post, client, mock_response):
     mock_post.assert_called_once()
     args, kwargs = mock_post.call_args
     assert "toggle/evaluate" in args[0]
-    assert kwargs["json"] == context.__dict__
+    assert kwargs["json"]["targetingKey"] == "user1"
 
 @patch("requests.Session.post")
 def test_evaluate_with_cache(mock_post, client, mock_response):
@@ -94,36 +92,53 @@ def test_evaluate_error_handling(mock_post, client):
     # Simulate network error
     mock_post.side_effect = requests.RequestException("Network error")
     context = HyphenEvaluationContext(targeting_key="user1")
-    logger = logging.getLogger()
 
-    with pytest.raises(Exception) as exc_info:
-        client.evaluate(context, logger)
+    with pytest.raises(requests.RequestException) as exc_info:
+        client.evaluate(context)
     assert "Network error" in str(exc_info.value)
 
 @patch("requests.Session.post")
 def test_post_telemetry(mock_post, client, mock_response):
     mock_post.return_value = mock_response
-    context = HyphenEvaluationContext(targeting_key="user1")
-    evaluation = Evaluation(
-        key="test-flag",
-        value=True,
-        type="boolean",
-        reason="STATIC"
-    )
+    
+    # Create context dictionary directly
+    context = {
+        "targetingKey": "user1",
+        "application": "test-app",
+        "environment": "test"
+    }
+    
+    # Create evaluation details dictionary directly
+    evaluation = {
+        "flagKey": "test-flag",
+        "value": True,
+        "reason": "STATIC",
+        "variant": "control"
+    }
+    
     payload = TelemetryPayload(
         context=context,
         data={"toggle": evaluation}
     )
-    logger = logging.getLogger()
 
     # Should not raise any exceptions
-    client.post_telemetry(payload, logger)
+    client.post_telemetry(payload)
 
     # Verify the request
     mock_post.assert_called_once()
     args, kwargs = mock_post.call_args
     assert "toggle/telemetry" in args[0]
-    assert kwargs["json"] == payload.__dict__
+    
+    # Verify context is properly transformed
+    assert kwargs["json"]["context"]["targetingKey"] == "user1"
+    assert kwargs["json"]["context"]["application"] == "test-app"
+    assert kwargs["json"]["context"]["environment"] == "test"
+    
+    # Verify telemetry data is properly formatted
+    toggle_data = kwargs["json"]["data"]["toggle"]
+    assert toggle_data["flagKey"] == "test-flag"
+    assert toggle_data["value"] is True
+    assert toggle_data["reason"] == "STATIC"
 
 @patch("requests.Session.post")
 def test_try_urls_fallback(mock_post, client):
@@ -143,10 +158,9 @@ def test_try_urls_fallback(mock_post, client):
     ]
     
     context = HyphenEvaluationContext(targeting_key="user1")
-    logger = logging.getLogger()
     
     # Should succeed using the fallback URL
-    response = client.evaluate(context, logger)
+    response = client.evaluate(context)
     assert mock_post.call_count == 2
     
     # Verify both URLs were tried
@@ -161,10 +175,9 @@ def test_try_urls_all_fail(mock_post, client):
     mock_post.side_effect = requests.RequestException("Network error")
     
     context = HyphenEvaluationContext(targeting_key="user1")
-    logger = logging.getLogger()
     
     with pytest.raises(requests.RequestException):
-        client.evaluate(context, logger)
+        client.evaluate(context)
     
     # Verify all URLs were tried
     assert mock_post.call_count == len(client.horizon_urls)
