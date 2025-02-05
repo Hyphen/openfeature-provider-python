@@ -42,7 +42,6 @@ jobs:
       - name: Lint
         run: |
           poetry run ruff check .
-          poetry run black --check .
 
   test:
     name: Tests
