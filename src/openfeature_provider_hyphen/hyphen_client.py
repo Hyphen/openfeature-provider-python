@@ -1,3 +1,4 @@
+import json
 from typing import Dict
 import requests
 
@@ -17,7 +18,7 @@ class HyphenClient:
         """
         self.public_key = public_key
         self.default_horizon_url = build_default_horizon_url(public_key)
-        self.horizon_urls = [*(options.horizon_urls or []), self.default_horizon_url]
+        self.horizon_urls = [*(options.horizon_urls or [])]
         self.cache = CacheClient(
             ttl_seconds=options.cache_ttl_seconds or 30
         )
@@ -52,7 +53,7 @@ class HyphenClient:
                 last_error = error
                 continue
         
-        raise last_error or Exception("All URLs failed")
+        raise last_error or Exception("Something went wrong")
 
     def evaluate(
         self, 
@@ -115,6 +116,9 @@ class HyphenClient:
         Args:
             payload: The telemetry payload to send
         """
-        telemetry_payload = payload.__dict__.copy()
-        telemetry_payload = transform_dict_keys(telemetry_payload)
-        self._try_urls('/toggle/telemetry', telemetry_payload)
+        try:
+            telemetry_payload = payload.__dict__.copy()
+            telemetry_payload = transform_dict_keys(telemetry_payload)
+            self._try_urls('/toggle/telemetry', telemetry_payload)
+        except Exception as e:
+            print(f"Error sending telemetry: {e}")

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from openfeature.flag_evaluation import FlagResolutionDetails, FlagEvaluationDetails, Reason
+from openfeature.flag_evaluation import FlagEvaluationDetails, Reason
 
 @dataclass
 class HyphenProviderOptions:
