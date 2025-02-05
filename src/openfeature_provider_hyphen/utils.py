@@ -1,6 +1,5 @@
 import base64
 import re
-import logging
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 from openfeature.evaluation_context import EvaluationContext

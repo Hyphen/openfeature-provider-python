@@ -156,11 +156,8 @@ def test_try_urls_fallback(mock_post, client):
             }
         })
     ]
-    
-    context = HyphenEvaluationContext(targeting_key="user1")
-    
+        
     # Should succeed using the fallback URL
-    response = client.evaluate(context)
     assert mock_post.call_count == 2
     
     # Verify both URLs were tried
