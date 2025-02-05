@@ -15,21 +15,21 @@ class TelemetryHook(Hook):
         """
         self.provider = provider
 
-    def _serialize_details(self, details: FlagEvaluationDetails) -> dict:
+    def _serialize_details(self, details: FlagEvaluationDetails, hints: dict) -> dict:
         """Convert FlagEvaluationDetails to a serializable dictionary.
         
         Args:
             details: The flag evaluation details
+            hints: Additional hints from the evaluation process
             
         Returns:
             A dictionary representation of the details
         """
         return {
-            "flagKey": details.flag_key,
+            "key": details.flag_key,
+            "type": hints.get("flag_type", "unknown"),
             "value": details.value,
-            "variant": details.variant,
             "reason": details.reason,
-            "errorCode": details.error_code,
             "errorMessage": details.error_message
         }
 
@@ -44,6 +44,7 @@ class TelemetryHook(Hook):
         Args:
             hook_context: Context for the hook execution
             details: Details about the flag evaluation
+            hints: Additional hints from the evaluation process
         """
         context = self.provider._prepare_context(hook_context.evaluation_context)
         
@@ -58,12 +59,14 @@ class TelemetryHook(Hook):
         context_dict = transform_dict_keys(context_dict)
         
         # Convert details to serializable format
-        details_dict = self._serialize_details(details)
+        details_dict = self._serialize_details(details, hints)
         
         payload = TelemetryPayload(
             context=context_dict,
             data={'toggle': details_dict}
         )
+
+        print("Logging usage:", payload)
 
         try:
             self.provider.hyphen_client.post_telemetry(payload)

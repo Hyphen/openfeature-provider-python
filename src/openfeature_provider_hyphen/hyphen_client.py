@@ -18,7 +18,7 @@ class HyphenClient:
         """
         self.public_key = public_key
         self.default_horizon_url = build_default_horizon_url(public_key)
-        self.horizon_urls = [*(options.horizon_urls or [])]
+        self.horizon_urls = [*(options.horizon_urls or []), *(self.default_horizon_url,)]
         self.cache = CacheClient(
             ttl_seconds=options.cache_ttl_seconds or 30
         )
