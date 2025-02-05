@@ -36,6 +36,22 @@ def client():
     )
     return HyphenClient("test-key", options)
 
+def test_client_initialization_with_custom_cache_key_fn():
+    def custom_cache_key_fn(context: HyphenEvaluationContext) -> str:
+        return f"custom-{context.targeting_key}"
+        
+    options = HyphenProviderOptions(
+        application="test-app",
+        environment="test",
+        horizon_urls=["https://custom.example.com"],
+        generate_cache_key_fn=custom_cache_key_fn
+    )
+    client = HyphenClient("test-key", options)
+    
+    # Test that the custom function was properly passed to CacheClient
+    context = HyphenEvaluationContext(targeting_key="user1")
+    assert client.cache.generate_cache_key_fn(context) == "custom-user1"
+
 def test_client_initialization():
     options = HyphenProviderOptions(
         application="test-app",
@@ -143,28 +159,38 @@ def test_post_telemetry(mock_post, client, mock_response):
 @patch("requests.Session.post")
 def test_try_urls_fallback(mock_post, client):
     # First URL fails, second succeeds
+    mock_response = Mock()
+    mock_response.json.return_value = {
+        "toggles": {
+            "test-flag": {
+                "key": "test-flag",
+                "value": True,
+                "type": "boolean",
+                "reason": "STATIC",
+            }
+        }
+    }
+    mock_response.raise_for_status = Mock()
+    
     mock_post.side_effect = [
         requests.RequestException("First URL failed"),
-        Mock(ok=True, json=lambda: {
-            "toggles": {
-                "test-flag": {
-                    "key": "test-flag",
-                    "value": True,
-                    "type": "boolean",
-                    "reason": "STATIC",
-                }
-            }
-        })
+        mock_response
     ]
-        
-    # Should succeed using the fallback URL
-    assert mock_post.call_count == 2
+    
+    # Make a request to trigger URL fallback
+    context = HyphenEvaluationContext(targeting_key="user1")
+    response = client.evaluate(context)
     
     # Verify both URLs were tried
+    assert mock_post.call_count == 2
     call_urls = [args[0] for args, _ in mock_post.call_args_list]
     assert len(call_urls) == 2
     assert "test.example.com" in call_urls[0]
     assert client.default_horizon_url in call_urls[1]
+    
+    # Verify we got the successful response
+    assert isinstance(response, EvaluationResponse)
+    assert "test-flag" in response.toggles
 
 @patch("requests.Session.post")
 def test_try_urls_all_fail(mock_post, client):
