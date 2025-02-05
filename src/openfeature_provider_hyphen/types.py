@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 from openfeature.flag_evaluation import FlagEvaluationDetails, Reason
 
 @dataclass
@@ -10,6 +10,7 @@ class HyphenProviderOptions:
     horizon_urls: Optional[List[str]] = None
     enable_toggle_usage: bool = True
     cache_ttl_seconds: Optional[int] = None
+    generate_cache_key_fn: Optional[Callable[['HyphenEvaluationContext'], str]] = None
 
 @dataclass
 class HyphenUser:

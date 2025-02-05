@@ -22,7 +22,8 @@ class HyphenClient:
         self.default_horizon_url = build_default_horizon_url(public_key)
         self.horizon_urls = [*(options.horizon_urls or []), *(self.default_horizon_url,)]
         self.cache = CacheClient(
-            ttl_seconds=options.cache_ttl_seconds or 30
+            ttl_seconds=options.cache_ttl_seconds or 30,
+            generate_cache_key_fn=options.generate_cache_key_fn
         )
         self.session = requests.Session()
         self.session.headers.update({
