@@ -1,12 +1,55 @@
 import base64
 import re
-from typing import Dict, Any
+import logging
+from typing import Dict, Any, Optional
 from urllib.parse import urlparse
+from openfeature.evaluation_context import EvaluationContext
+from openfeature.flag_evaluation import FlagEvaluationDetails
 
 def to_camel_case(snake_str: str) -> str:
     """Convert snake_case string to camelCase."""
     components = snake_str.split('_')
     return components[0] + ''.join(x.title() for x in components[1:])
+
+def prepare_evaluate_payload(context: Optional[EvaluationContext] = None) -> Dict[str, Any]:
+    """Prepare payload for the evaluate endpoint.
+    
+    Args:
+        context: The evaluation context to transform
+        
+    Returns:
+        A dictionary ready to be sent to the evaluate endpoint
+    """
+    if context is None:
+        return {}
+        
+    # Convert context to dict and handle attributes
+    payload = context.__dict__.copy()
+    if 'attributes' in payload and payload['attributes']:
+        attributes = payload.pop('attributes')
+        payload.update(attributes)
+    payload.pop('attributes', None)
+    
+    # Convert keys to camelCase
+    return transform_dict_keys(payload)
+
+def prepare_telemetry_details(details: FlagEvaluationDetails, hints: dict) -> dict:
+    """Prepare evaluation details for telemetry.
+    
+    Args:
+        details: The flag evaluation details
+        hints: Additional hints from the evaluation process
+        
+    Returns:
+        A dictionary ready for telemetry submission
+    """
+    return {
+        "key": details.flag_key,
+        "type": hints.get("flag_type", "unknown"),
+        "value": details.value,
+        "reason": details.reason,
+        "errorMessage": details.error_message
+    }
 
 def transform_dict_keys(d: Dict[str, Any]) -> Dict[str, Any]:
     """Recursively transform all dictionary keys from snake_case to camelCase."""

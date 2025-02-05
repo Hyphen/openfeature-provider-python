@@ -1,10 +1,12 @@
-import json
+import logging
 from typing import Dict
 import requests
 
 from .types import EvaluationResponse, HyphenEvaluationContext, HyphenProviderOptions, TelemetryPayload, Evaluation
 from .cache_client import CacheClient
-from .utils import build_default_horizon_url, build_url, transform_dict_keys
+from .utils import build_default_horizon_url, build_url, prepare_evaluate_payload, transform_dict_keys
+
+logger = logging.getLogger(__name__)
 
 class HyphenClient:
     """Client for interacting with the Hyphen API."""
@@ -73,15 +75,8 @@ class HyphenClient:
         if cached_response:
             return cached_response
 
-        # Prepare payload
-        payload = context.__dict__.copy()
-        if 'attributes' in payload and payload['attributes']:
-            attributes = payload.pop('attributes')
-            payload.update(attributes)
-        payload.pop('attributes', None)
-        
-        # Convert keys to camelCase
-        payload = transform_dict_keys(payload)
+        # Prepare payload for evaluation
+        payload = prepare_evaluate_payload(context)
 
         # Make API request
         response = self._try_urls('/toggle/evaluate', payload)
@@ -121,4 +116,4 @@ class HyphenClient:
             telemetry_payload = transform_dict_keys(telemetry_payload)
             self._try_urls('/toggle/telemetry', telemetry_payload)
         except Exception as e:
-            print(f"Error sending telemetry: {e}")
+            logger.debug("Error sending telemetry: %s", e)
