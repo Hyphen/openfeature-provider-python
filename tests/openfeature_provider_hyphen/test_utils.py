@@ -14,12 +14,12 @@ def test_get_org_id_from_public_key():
     # Create a base64 string that when decoded would be "test:key"
     test_key = base64.b64encode(b"test:key").decode('utf-8')
     public_key = "public_" + test_key
-    org_id = get_org_id_from_public_key(public_key)
-    assert org_id == "test"
+    organization_id = get_org_id_from_public_key(public_key)
+    assert organization_id == "test"
 
     # Test invalid public key
-    org_id = get_org_id_from_public_key("invalid_key")
-    assert org_id == ""
+    organization_id = get_org_id_from_public_key("invalid_key")
+    assert organization_id == ""
 
 def test_build_default_horizon_url():
     # Test with org ID

@@ -68,30 +68,30 @@ def get_org_id_from_public_key(public_key: str) -> str:
         key_without_prefix = public_key.replace('public_', '', 1)
         # Decode base64 directly
         decoded = base64.b64decode(key_without_prefix).decode('utf-8')
-        org_id = decoded.split(':')[0]
-        if re.match(r'^[a-zA-Z0-9_-]+$', org_id):
-            return org_id
+        organization_id = decoded.split(':')[0]
+        if re.match(r'^[a-zA-Z0-9_-]+$', organization_id):
+            return organization_id
     except Exception:
         pass
     return ''
 
 def build_default_horizon_url(public_key: str) -> str:
     """Build the default Horizon URL based on public key."""
-    org_id = get_org_id_from_public_key(public_key)
-    if org_id:
-        return f'https://{org_id}.toggle.hyphen.cloud'
+    organization_id = get_org_id_from_public_key(public_key)
+    if organization_id:
+        return f'https://{organization_id}.toggle.hyphen.cloud'
     return 'https://toggle.hyphen.cloud'
 
 def build_url(base_url: str, path: str) -> str:
     """Build a complete URL by combining base URL and path."""
     parsed = urlparse(base_url)
-    base_path = parsed.path.rstrip('/')
-    clean_path = path.lstrip('/')
+    base_url_path = parsed.path.rstrip('/')
+    normalized_path = path.lstrip('/')
     
-    if base_path:
-        full_path = f"{base_path}/{clean_path}"
+    if base_url_path:
+        full_path = f"{base_url_path}/{normalized_path}"
     else:
-        full_path = clean_path
+        full_path = normalized_path
         
     # Reconstruct URL with new path
     parsed = parsed._replace(path=full_path)
