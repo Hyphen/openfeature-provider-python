@@ -55,26 +55,26 @@ context = HyphenEvaluationContext(
 )
 
 # Evaluate the toggle with context
-flag_details = await client.get_boolean_details(
+flag_details = await client.get_boolean_value(
     "toggle-key",
     default_value=False,
     evaluation_context=context
 )
 
-print(flag_details.value)  # True or False
+print(flag_details)  # True or False
 ```
 
 ## Configuration
 
 ### Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `application` | str | The application id or alternate id. |
-| `environment` | str | The environment in which your application is running (e.g., `production`, `staging`). |
-| `horizon_urls` | List[str] | A list of Hyphen Horizon URLs to use for fetching feature flags. |
-| `enable_toggle_usage` | bool | Enable or disable the logging of toggle usage (telemetry). |
-| `cache` | dict | Configuration for caching feature flag evaluations. |
+| Option | Type | Description | Required |
+|--------|------|-------------|----------|
+| `application` | str | The application id or alternate id. | Yes |
+| `environment` | str | The environment in which your application is running (e.g., `production`, `staging`). | Yes |
+| `horizon_urls` | List[str] | A list of Hyphen Horizon URLs to use for fetching feature flags. | No |
+| `enable_toggle_usage` | bool | Enable or disable the logging of toggle usage (telemetry). | No |
+| `cache` | dict | Configuration for caching feature flag evaluations. | No |
 
 ### Cache Configuration
 
