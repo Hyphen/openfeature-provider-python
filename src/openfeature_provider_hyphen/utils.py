@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 from urllib.parse import urlparse
 from openfeature.evaluation_context import EvaluationContext
 from openfeature.flag_evaluation import FlagEvaluationDetails
+from .types import HyphenUser
 
 def to_camel_case(snake_str: str) -> str:
     """Convert snake_case string to camelCase."""
@@ -26,9 +27,11 @@ def prepare_evaluate_payload(context: Optional[EvaluationContext] = None) -> Dic
     payload = context.__dict__.copy()
     if 'attributes' in payload and payload['attributes']:
         attributes = payload.pop('attributes')
+        if 'user' in attributes and isinstance(attributes['user'], HyphenUser):
+            attributes['user'] = attributes['user'].__dict__.copy()
         payload.update(attributes)
     payload.pop('attributes', None)
-    
+
     # Convert keys to camelCase
     return transform_dict_keys(payload)
 
