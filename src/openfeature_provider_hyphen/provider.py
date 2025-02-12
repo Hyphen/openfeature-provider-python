@@ -117,12 +117,8 @@ class HyphenProvider(AbstractProvider):
         flag_key: str,
         default_value: bool,
         context: Optional[EvaluationContext] = None,
-        hints: Optional[Dict] = None
     ) -> FlagResolutionDetails[bool]:
         """Resolve boolean flag values."""
-        if hints is None:
-            hints = {}
-        hints["flag_type"] = "boolean"
         mapping = {"true": True, "false": False}
         value = mapping.get(self._get_evaluation(flag_key, context, "boolean", default_value).value.lower(), default_value)
         return FlagResolutionDetails(value=value, variant=str(value), reason=Reason.TARGETING_MATCH)
@@ -132,12 +128,8 @@ class HyphenProvider(AbstractProvider):
         flag_key: str,
         default_value: str,
         context: Optional[EvaluationContext] = None,
-        hints: Optional[Dict] = None
     ) -> FlagResolutionDetails[str]:
         """Resolve string flag values."""
-        if hints is None:
-            hints = {}
-        hints["flag_type"] = "string"
         return self._get_evaluation(flag_key, context, "string", default_value)
 
     def resolve_integer_details(
@@ -145,12 +137,8 @@ class HyphenProvider(AbstractProvider):
         flag_key: str,
         default_value: int,
         context: Optional[EvaluationContext] = None,
-        hints: Optional[Dict] = None
     ) -> FlagResolutionDetails[int]:
         """Resolve integer flag values."""
-        if hints is None:
-            hints = {}
-        hints["flag_type"] = "number"
         details = self._get_evaluation(flag_key, context, "number", default_value)
         details.value = int(details.value)
         return details
@@ -160,12 +148,9 @@ class HyphenProvider(AbstractProvider):
         flag_key: str,
         default_value: float,
         context: Optional[EvaluationContext] = None,
-        hints: Optional[Dict] = None
     ) -> FlagResolutionDetails[float]:
         """Resolve float flag values."""
-        if hints is None:
-            hints = {}
-        hints["flag_type"] = "number"
+
         details = self._get_evaluation(flag_key, context, "number", default_value)
         details.value = float(details.value)
         return details
@@ -175,12 +160,8 @@ class HyphenProvider(AbstractProvider):
         flag_key: str,
         default_value: Union[Dict, List],
         context: Optional[EvaluationContext] = None,
-        hints: Optional[Dict] = None
     ) -> FlagResolutionDetails[Union[Dict, List]]:
         """Resolve object flag values."""
-        if hints is None:
-            hints = {}
-        hints["flag_type"] = "object"
         details = self._get_evaluation(flag_key, context, "object", default_value)
         try:
             if isinstance(details.value, str):
