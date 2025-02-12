@@ -123,7 +123,9 @@ class HyphenProvider(AbstractProvider):
         if hints is None:
             hints = {}
         hints["flag_type"] = "boolean"
-        return self._get_evaluation(flag_key, context, "boolean", default_value)
+        mapping = {"true": True, "false": False}
+        value = mapping.get(self._get_evaluation(flag_key, context, "boolean", default_value).value.lower(), default_value)
+        return FlagResolutionDetails(value=value, variant=str(value), reason=Reason.TARGETING_MATCH)
 
     def resolve_string_details(
         self,
