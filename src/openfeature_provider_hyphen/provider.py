@@ -109,7 +109,10 @@ class HyphenProvider(AbstractProvider):
         return FlagResolutionDetails(
             value=evaluation.value,
             variant=str(evaluation.value),
-            reason=evaluation.reason or Reason.TARGETING_MATCH
+            reason=evaluation.reason or Reason.TARGETING_MATCH,
+            flag_metadata={
+                "type": evaluation.type
+            },
         )
 
     def resolve_boolean_details(
@@ -121,7 +124,12 @@ class HyphenProvider(AbstractProvider):
         """Resolve boolean flag values."""
         mapping = {"true": True, "false": False}
         value = mapping.get(self._get_evaluation(flag_key, context, "boolean", default_value).value.lower(), default_value)
-        return FlagResolutionDetails(value=value, variant=str(value), reason=Reason.TARGETING_MATCH)
+        return FlagResolutionDetails(
+            value=value, 
+            variant=str(value), 
+            reason=Reason.TARGETING_MATCH,
+            flag_metadata={"type": "boolean"},
+            )
 
     def resolve_string_details(
         self,

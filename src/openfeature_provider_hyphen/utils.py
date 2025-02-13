@@ -35,7 +35,7 @@ def prepare_evaluate_payload(context: Optional[EvaluationContext] = None) -> Dic
     # Convert keys to camelCase
     return transform_dict_keys(payload)
 
-def prepare_telemetry_details(details: FlagEvaluationDetails, hints: dict) -> dict:
+def prepare_telemetry_details(details: FlagEvaluationDetails) -> dict:
     """Prepare evaluation details for telemetry.
     
     Args:
@@ -47,7 +47,7 @@ def prepare_telemetry_details(details: FlagEvaluationDetails, hints: dict) -> di
     """
     return {
         "key": details.flag_key,
-        "type": hints.get("flag_type", "unknown"),
+        "type": details.flag_metadata.get('type', 'unknown'),
         "value": details.value,
         "reason": details.reason,
         "errorMessage": details.error_message

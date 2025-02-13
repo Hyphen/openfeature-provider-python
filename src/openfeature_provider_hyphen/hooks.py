@@ -33,7 +33,7 @@ class TelemetryHook(Hook):
         """
         context = self.provider._prepare_context(hook_context.evaluation_context)
         context_dict = prepare_evaluate_payload(context)
-        details_dict = prepare_telemetry_details(details, hints)
+        details_dict = prepare_telemetry_details(details)
         
         payload = TelemetryPayload(
             context=context_dict,
