@@ -96,6 +96,16 @@ options = HyphenProviderOptions(
         "generate_cache_key_fn": lambda context: f"{context['targeting_key']}-{context['user']['id']}"
     }
 )
+
+# Example using an project environment id
+# options = HyphenProviderOptions(
+#     application="your-application-name",
+#     environment="pevr_abc123",
+#     cache={
+#         "ttl_seconds": 600,  # 10 minutes
+#         "generate_cache_key_fn": lambda context: f"{context['targeting_key']}-{context['user']['id']}"
+#     }
+# )
 ```
 
 ### Context

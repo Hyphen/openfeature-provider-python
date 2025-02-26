@@ -55,6 +55,52 @@ def test_provider_initialization():
             environment=""
         ))
 
+
+def test_provider_initialization_environment_validation_regex():
+    # Test with valid project environment ID
+    options = HyphenProviderOptions(
+        application="test-app",
+        environment="pevr_abc123"
+    )
+    provider = HyphenProvider("test-key", options)
+    assert provider.options == options
+
+    # Test with valid alternateId
+    options = HyphenProviderOptions(
+        application="test-app",
+        environment="production"
+    )
+    provider = HyphenProvider("test-key", options)
+    assert provider.options == options
+
+    # Test with invalid environment format (uppercase)
+    with pytest.raises(ValueError, match='Invalid environment format'):
+        HyphenProvider("test-key", HyphenProviderOptions(
+            application="test-app",
+            environment="Production"
+        ))
+
+    # Test with invalid environment format (too long)
+    with pytest.raises(ValueError, match='Invalid environment format'):
+        HyphenProvider("test-key", HyphenProviderOptions(
+            application="test-app",
+            environment="thisisaverylongenvironmentid"
+        ))
+
+    # Test with invalid environment format (invalid characters)
+    with pytest.raises(ValueError, match='Invalid environment format'):
+        HyphenProvider("test-key", HyphenProviderOptions(
+            application="test-app",
+            environment="test environment"
+        ))
+
+    # Test with invalid environment format (contains "environments")
+    with pytest.raises(ValueError, match='Invalid environment format'):
+        HyphenProvider("test-key", HyphenProviderOptions(
+            application="test-app",
+            environment="testenvironments"
+        ))
+
 def test_get_metadata(provider):
     metadata = provider.get_metadata()
     assert metadata.name == "hyphen-toggle-python"
@@ -112,31 +158,48 @@ def test_prepare_context(provider):
 @patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.evaluate")
 def test_resolve_boolean_details(mock_evaluate, provider, mock_evaluation):
     mock_evaluate.return_value = EvaluationResponse(toggles=mock_evaluation)
-    
+
     # Test successful evaluation
-    result = provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
-    assert result.value is True
-    assert result.reason == Reason.TARGETING_MATCH
-    
-    # Test wrong type
-    mock_evaluation["test-flag"].type = "string"
-    with pytest.raises(TypeMismatchError):
-        provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
-    
-    # Test missing flag
-    mock_evaluation.clear()
-    with pytest.raises(FlagNotFoundError):
-        provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
-    
-    # Test error message in evaluation
     mock_evaluation["test-flag"] = Evaluation(
         key="test-flag",
-        value=True,
+        value="true",
         type="boolean",
-        error_message="Test error"
+        reason=Reason.TARGETING_MATCH,
     )
+    mock_evaluate.return_value = EvaluationResponse(toggles=mock_evaluation)
+    result = provider.resolve_boolean_details(
+        "test-flag", False, HyphenEvaluationContext(targeting_key="user1")
+    )
+    assert result.value is True
+    assert result.reason == Reason.TARGETING_MATCH
+
+    # Test wrong type
+    mock_evaluation["test-flag"] = Evaluation(
+        key="test-flag", value="test", type="string", reason=Reason.TARGETING_MATCH
+    )
+    mock_evaluate.return_value = EvaluationResponse(toggles=mock_evaluation)
+    with pytest.raises(TypeMismatchError):
+        provider.resolve_boolean_details(
+            "test-flag", False, HyphenEvaluationContext(targeting_key="user1")
+        )
+
+    # Test missing flag
+    mock_evaluation.clear()
+    mock_evaluate.return_value = EvaluationResponse(toggles=mock_evaluation)
+    with pytest.raises(FlagNotFoundError):
+        provider.resolve_boolean_details(
+            "test-flag", False, HyphenEvaluationContext(targeting_key="user1")
+        )
+
+    # Test error message in evaluation
+    mock_evaluation["test-flag"] = Evaluation(
+        key="test-flag", value="true", type="boolean", error_message="Test error"
+    )
+    mock_evaluate.return_value = EvaluationResponse(toggles=mock_evaluation)
     with pytest.raises(GeneralError):
-        provider.resolve_boolean_details("test-flag", False, HyphenEvaluationContext(targeting_key="user1"))
+        provider.resolve_boolean_details(
+            "test-flag", False, HyphenEvaluationContext(targeting_key="user1")
+        )
 
 @patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.evaluate")
 def test_resolve_string_details(mock_evaluate, provider):
@@ -215,29 +278,32 @@ def test_telemetry_hook(provider):
     details = FlagResolutionDetails(
         value=True,
         variant="true",
-        reason=Reason.TARGETING_MATCH
+        reason=Reason.TARGETING_MATCH,
+        flag_metadata={"type": "boolean"}
     )
     details.flag_key = "test-flag"  # Set flag_key after initialization
-    
+
     hook_context = Mock()
     hook_context.evaluation_context = context
     hints = {"flag_type": "boolean"}
-    
+
     # Test hook execution
-    with patch("openfeature_provider_hyphen.hyphen_client.HyphenClient.post_telemetry") as mock_post:
+    with patch(
+        "openfeature_provider_hyphen.hyphen_client.HyphenClient.post_telemetry"
+    ) as mock_post:
         hook.after(hook_context, details, hints)
         mock_post.assert_called_once()
-        
+
         # Verify payload
         args = mock_post.call_args
         payload = args[0][0]
         assert isinstance(payload, TelemetryPayload)
-        
+
         # Verify context transformation
         assert payload.context["targetingKey"] == "user1"
         assert payload.context["application"] == provider.options.application
         assert payload.context["environment"] == provider.options.environment
-        
+
         # Verify telemetry details
         toggle_data = payload.data["toggle"]
         assert toggle_data["key"] == "test-flag"

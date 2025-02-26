@@ -51,11 +51,11 @@ def test_prepare_telemetry_details():
         flag_key="test-flag",
         value=True,
         reason="test-reason",
-        error_message="test-error"
+        error_message="test-error",
+        flag_metadata={"type": "boolean"}
     )
-    hints = {"flag_type": "boolean"}
-    
-    result = prepare_telemetry_details(details, hints)
+
+    result = prepare_telemetry_details(details)
     assert result["key"] == "test-flag"
     assert result["type"] == "boolean"
     assert result["value"] is True
@@ -63,7 +63,13 @@ def test_prepare_telemetry_details():
     assert result["errorMessage"] == "test-error"
 
     # Test with missing flag_type
-    result = prepare_telemetry_details(details, {})
+    details = FlagEvaluationDetails(
+        flag_key="test-flag",
+        value=True,
+        reason="test-reason",
+        error_message="test-error"
+    )
+    result = prepare_telemetry_details(details)
     assert result["type"] == "unknown"
 
 def test_build_url():

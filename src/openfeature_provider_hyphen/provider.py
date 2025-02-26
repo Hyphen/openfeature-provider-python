@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any, Dict, List, Optional, Union
 
 from openfeature.evaluation_context import EvaluationContext
@@ -24,18 +25,36 @@ class HyphenProvider(AbstractProvider):
 
     def __init__(self, public_key: str, options: HyphenProviderOptions):
         """Initialize the Hyphen provider.
-        
+
         Args:
             public_key: The public API key for authentication
             options: Configuration options for the provider
         """
+        self._validate_options(options)
+
+        self.options = options
+        self.hyphen_client = HyphenClient(public_key, options)
+
+    def _validate_options(self, options: HyphenProviderOptions):
+        """Validate the provider options."""
         if not options.application:
             raise ValueError("Application is required")
         if not options.environment:
             raise ValueError("Environment is required")
 
-        self.options = options
-        self.hyphen_client = HyphenClient(public_key, options)
+        self._validate_environment_format(options.environment)
+
+    def _validate_environment_format(self, environment: str):
+        """Validate the environment identifier format."""
+        is_environment_id = environment.startswith("pevr_")
+        is_valid_alternate_id = bool(re.match(r"^(?!.*environments)[a-z0-9\-_]{1,25}$", environment))
+
+        if not (is_environment_id or is_valid_alternate_id):
+            raise ValueError(
+                'Invalid environment format. Must be either a project environment ID (starting with "pevr_") '
+                "or a valid alternateId (1-25 characters, lowercase letters, numbers, hyphens, and underscores, "
+                'and not containing the word "environments").'
+            )
 
     def get_metadata(self) -> Metadata:
         """Get provider metadata."""

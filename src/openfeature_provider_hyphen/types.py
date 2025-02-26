@@ -6,11 +6,22 @@ from openfeature.flag_evaluation import FlagEvaluationDetails, Reason
 class HyphenProviderOptions:
     """Options for configuring the Hyphen provider."""
     application: str
+    """The application name or ID for the current evaluation."""
     environment: str
+    """
+    The environment identifier for the Hyphen project.
+    This can be either:
+    - A project environment ID (e.g., `pevr_abc123`)
+    - A valid alternateId (1-25 characters, lowercase letters, numbers, hyphens, and underscores)
+    """
     horizon_urls: Optional[List[str]] = None
+    """The Hyphen server URL"""
     enable_toggle_usage: bool = True
+    """Flag to enable toggle usage"""
     cache_ttl_seconds: Optional[int] = None
+    """The time-to-live (TTL) in seconds for the cache."""
     generate_cache_key_fn: Optional[Callable[['HyphenEvaluationContext'], str]] = None
+    """Generate a cache key function for the evaluation context."""
 
 @dataclass
 class HyphenUser:
