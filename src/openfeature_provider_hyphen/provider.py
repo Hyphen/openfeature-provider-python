@@ -20,6 +20,7 @@ from .types import HyphenEvaluationContext, HyphenProviderOptions
 from .hyphen_client import HyphenClient
 from .hooks import TelemetryHook
 
+
 class HyphenProvider(AbstractProvider):
     """OpenFeature provider implementation for Hyphen."""
 
@@ -47,7 +48,9 @@ class HyphenProvider(AbstractProvider):
     def _validate_environment_format(self, environment: str):
         """Validate the environment identifier format."""
         is_environment_id = environment.startswith("pevr_")
-        is_valid_alternate_id = bool(re.match(r"^(?!.*environments)[a-z0-9\-_]{1,25}$", environment))
+        is_valid_alternate_id = bool(
+            re.match(r"^(?!.*environments)[a-z0-9\-_]{1,25}$", environment)
+        )
 
         if not (is_environment_id or is_valid_alternate_id):
             raise ValueError(
@@ -63,10 +66,10 @@ class HyphenProvider(AbstractProvider):
     def get_provider_hooks(self) -> List[Hook]:
         """Get provider-specific hooks."""
         hooks = []
-        
+
         if self.options.enable_toggle_usage:
             hooks.append(self._create_telemetry_hook())
-            
+
         return hooks
 
     def _create_telemetry_hook(self) -> Hook:
@@ -87,7 +90,9 @@ class HyphenProvider(AbstractProvider):
         # Generate a default targeting key
         return f"{self.options.application}-{self.options.environment}-{id(context)}"
 
-    def _prepare_context(self, context: Optional[EvaluationContext] = None) -> HyphenEvaluationContext:
+    def _prepare_context(
+        self, context: Optional[EvaluationContext] = None
+    ) -> HyphenEvaluationContext:
         """Prepare the evaluation context."""
         if context is None:
             context = EvaluationContext()
@@ -103,13 +108,13 @@ class HyphenProvider(AbstractProvider):
     def _wrong_type(self, value: Any) -> FlagResolutionDetails:
         """Create an error resolution for wrong type."""
         raise TypeMismatchError()
-    
+
     def _get_evaluation(
         self,
         flag_key: str,
         context: Optional[EvaluationContext],
         expected_type: str,
-        default_value: Any
+        default_value: Any,
     ) -> FlagResolutionDetails:
         """Get flag evaluation from the client."""
         prepared_context = self._prepare_context(context)
@@ -117,11 +122,11 @@ class HyphenProvider(AbstractProvider):
         evaluation = response.toggles.get(flag_key)
 
         if evaluation is None:
-            raise FlagNotFoundError('Flag not found')
+            raise FlagNotFoundError("Flag not found")
 
         if evaluation.error_message:
             raise GeneralError(str(evaluation.error_message))
-        
+
         if evaluation.type != expected_type:
             return self._wrong_type(default_value)
 
@@ -129,9 +134,7 @@ class HyphenProvider(AbstractProvider):
             value=evaluation.value,
             variant=str(evaluation.value),
             reason=evaluation.reason or Reason.TARGETING_MATCH,
-            flag_metadata={
-                "type": evaluation.type
-            },
+            flag_metadata={"type": evaluation.type},
         )
 
     def resolve_boolean_details(
@@ -141,14 +144,24 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None,
     ) -> FlagResolutionDetails[bool]:
         """Resolve boolean flag values."""
-        mapping = {"true": True, "false": False}
-        value = mapping.get(self._get_evaluation(flag_key, context, "boolean", default_value).value.lower(), default_value)
+        evaluation = self._get_evaluation(
+            flag_key, context, "boolean", default_value
+        )
+
+        # Handle the value based on its type
+        if isinstance(evaluation.value, bool):
+            value = evaluation.value
+        elif isinstance(evaluation.value, str):
+            value = evaluation.value.lower() == "true"
+        else:
+            value = bool(evaluation.value)
+
         return FlagResolutionDetails(
-            value=value, 
-            variant=str(value), 
+            value=value,
+            variant=str(value),
             reason=Reason.TARGETING_MATCH,
             flag_metadata={"type": "boolean"},
-            )
+        )
 
     def resolve_string_details(
         self,
@@ -166,7 +179,9 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None,
     ) -> FlagResolutionDetails[int]:
         """Resolve integer flag values."""
-        details = self._get_evaluation(flag_key, context, "number", default_value)
+        details = self._get_evaluation(
+            flag_key, context, "number", default_value
+        )
         details.value = int(details.value)
         return details
 
@@ -178,7 +193,9 @@ class HyphenProvider(AbstractProvider):
     ) -> FlagResolutionDetails[float]:
         """Resolve float flag values."""
 
-        details = self._get_evaluation(flag_key, context, "number", default_value)
+        details = self._get_evaluation(
+            flag_key, context, "number", default_value
+        )
         details.value = float(details.value)
         return details
 
@@ -189,7 +206,9 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None,
     ) -> FlagResolutionDetails[Union[Dict, List]]:
         """Resolve object flag values."""
-        details = self._get_evaluation(flag_key, context, "object", default_value)
+        details = self._get_evaluation(
+            flag_key, context, "object", default_value
+        )
         try:
             if isinstance(details.value, str):
                 details.value = json.loads(details.value)
@@ -199,5 +218,5 @@ class HyphenProvider(AbstractProvider):
                 value=default_value,
                 variant=str(default_value),
                 reason=Reason.ERROR,
-                error_code=ErrorCode.PARSE_ERROR
+                error_code=ErrorCode.PARSE_ERROR,
             )
