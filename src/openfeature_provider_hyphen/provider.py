@@ -3,22 +3,15 @@ import re
 from typing import Any, Dict, List, Optional, Union
 
 from openfeature.evaluation_context import EvaluationContext
-from openfeature.flag_evaluation import (
-    FlagResolutionDetails,
-    Reason,
-)
-from openfeature.exception import (
-    ErrorCode,
-    FlagNotFoundError,
-    GeneralError,
-    TypeMismatchError,
-)
+from openfeature.exception import (ErrorCode, FlagNotFoundError, GeneralError,
+                                   TypeMismatchError)
+from openfeature.flag_evaluation import FlagResolutionDetails, Reason
 from openfeature.hook import Hook
-from openfeature.provider import Metadata, AbstractProvider
+from openfeature.provider import AbstractProvider, Metadata
 
-from .types import HyphenEvaluationContext, HyphenProviderOptions
-from .hyphen_client import HyphenClient
 from .hooks import TelemetryHook
+from .hyphen_client import HyphenClient
+from .types import HyphenEvaluationContext, HyphenProviderOptions
 
 
 class HyphenProvider(AbstractProvider):
@@ -144,9 +137,7 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None,
     ) -> FlagResolutionDetails[bool]:
         """Resolve boolean flag values."""
-        evaluation = self._get_evaluation(
-            flag_key, context, "boolean", default_value
-        )
+        evaluation = self._get_evaluation(flag_key, context, "boolean", default_value)
 
         # Handle the value based on its type
         if isinstance(evaluation.value, bool):
@@ -179,9 +170,7 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None,
     ) -> FlagResolutionDetails[int]:
         """Resolve integer flag values."""
-        details = self._get_evaluation(
-            flag_key, context, "number", default_value
-        )
+        details = self._get_evaluation(flag_key, context, "number", default_value)
         details.value = int(details.value)
         return details
 
@@ -193,9 +182,7 @@ class HyphenProvider(AbstractProvider):
     ) -> FlagResolutionDetails[float]:
         """Resolve float flag values."""
 
-        details = self._get_evaluation(
-            flag_key, context, "number", default_value
-        )
+        details = self._get_evaluation(flag_key, context, "number", default_value)
         details.value = float(details.value)
         return details
 
@@ -206,9 +193,7 @@ class HyphenProvider(AbstractProvider):
         context: Optional[EvaluationContext] = None,
     ) -> FlagResolutionDetails[Union[Dict, List]]:
         """Resolve object flag values."""
-        details = self._get_evaluation(
-            flag_key, context, "object", default_value
-        )
+        details = self._get_evaluation(flag_key, context, "object", default_value)
         try:
             if isinstance(details.value, str):
                 details.value = json.loads(details.value)

@@ -1,10 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Union
+
 from openfeature.flag_evaluation import FlagEvaluationDetails, Reason
+
 
 @dataclass
 class HyphenProviderOptions:
     """Options for configuring the Hyphen provider."""
+
     application: str
     """The application name or ID for the current evaluation."""
     environment: str
@@ -20,16 +23,19 @@ class HyphenProviderOptions:
     """Flag to enable toggle usage"""
     cache_ttl_seconds: Optional[int] = None
     """The time-to-live (TTL) in seconds for the cache."""
-    generate_cache_key_fn: Optional[Callable[['HyphenEvaluationContext'], str]] = None
+    generate_cache_key_fn: Optional[Callable[["HyphenEvaluationContext"], str]] = None
     """Generate a cache key function for the evaluation context."""
+
 
 @dataclass
 class HyphenUser:
     """User information for Hyphen evaluation context."""
+
     id: str
     email: Optional[str] = None
     name: Optional[str] = None
     custom_attributes: Optional[Dict[str, Any]] = None
+
 
 @dataclass
 class HyphenEvaluationContext:
@@ -40,18 +46,24 @@ class HyphenEvaluationContext:
         - 'user': A dictionary with user details (id, email, name, custom_attributes)
         - 'ip_address': A string representing the user's IP address
         - 'custom_attributes': A dictionary of additional custom attributes
-  
+
     """
+
     targeting_key: str
-    attributes: Dict[str, Union[
-        HyphenUser,  # user details
-        str,             # ip_address
-        Dict[str, Any]   # custom_attributes
-    ]] = field(default_factory=dict)
+    attributes: Dict[
+        str,
+        Union[
+            HyphenUser,  # user details
+            str,  # ip_address
+            Dict[str, Any],  # custom_attributes
+        ],
+    ] = field(default_factory=dict)
+
 
 @dataclass
 class Evaluation:
     """Represents a feature flag evaluation."""
+
     key: str
     value: Union[bool, str, int, float, Dict[str, Any], List[Any]]
     type: str  # 'boolean' | 'string' | 'number' | 'object'
@@ -59,13 +71,17 @@ class Evaluation:
     error_message: Optional[str] = None
     variant: Optional[str] = None
 
+
 @dataclass
 class EvaluationResponse:
     """Response from the Hyphen evaluation API."""
+
     toggles: Dict[str, Evaluation]
+
 
 @dataclass
 class TelemetryPayload:
     """Payload for telemetry data."""
+
     context: HyphenEvaluationContext
     data: Dict[str, FlagEvaluationDetails]  # {'toggle': FlagEvaluationDetails}

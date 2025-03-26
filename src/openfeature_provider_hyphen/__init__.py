@@ -5,21 +5,15 @@ This package provides integration between OpenFeature and Hyphen's feature flag 
 """
 
 from .provider import HyphenProvider
-from .types import (
-    HyphenProviderOptions,
-    HyphenUser,
-    HyphenEvaluationContext,
-    Evaluation,
-    EvaluationResponse,
-    TelemetryPayload,
-)
+from .types import (Evaluation, EvaluationResponse, HyphenEvaluationContext,
+                    HyphenProviderOptions, HyphenUser, TelemetryPayload)
 
 __all__ = [
-    'HyphenProvider',
-    'HyphenProviderOptions',
-    'HyphenUser',
-    'HyphenEvaluationContext',
-    'Evaluation',
-    'EvaluationResponse',
-    'TelemetryPayload',
+    "HyphenProvider",
+    "HyphenProviderOptions",
+    "HyphenUser",
+    "HyphenEvaluationContext",
+    "Evaluation",
+    "EvaluationResponse",
+    "TelemetryPayload",
 ]

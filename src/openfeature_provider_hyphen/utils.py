@@ -1,9 +1,11 @@
 import base64
 import re
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
+
 from openfeature.evaluation_context import EvaluationContext
 from openfeature.flag_evaluation import FlagEvaluationDetails
+
 from .types import HyphenUser
 
 
