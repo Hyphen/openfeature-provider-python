@@ -101,19 +101,13 @@ jobs:
           key: venv-${{ runner.os }}-python-${{ hashFiles('poetry.lock') }}
       - name: Install dependencies
         run: poetry install --no-interaction
-      - name: Prepare build directory and set permissions
-        run: |
-          sudo rm -rf dist
-          sudo mkdir -p dist
-          sudo chown -R $USER:$USER .
-          sudo chmod -R 777 dist
       - name: Build
-        run: poetry build
+        run: poetry build --clean
 
   release:
     name: Release Package
     runs-on: ubuntu-latest
-    needs: [lint, test, build]
+    needs: [lint, test]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -135,13 +129,8 @@ jobs:
           poetry config virtualenvs.create true --local
           poetry config virtualenvs.in-project true --local
           poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-      - name: Prepare build directory and set permissions
-        run: |
-          sudo rm -rf dist
-          sudo mkdir -p dist
-          sudo chown -R $USER:$USER .
-          sudo chmod -R 777 dist
       - name: Build and publish
         run: |
-          poetry build
-          poetry publish
+          mkdir -p /tmp/dist
+          poetry build --directory /tmp/dist
+          poetry publish --directory /tmp/dist
