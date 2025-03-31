@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "openfeature-provider-python"
-version = "1.0.0"
+version = "0.1.0"
 description = "Hyphen provider for OpenFeature Python SDK"
 authors = ["Hyphen AI"]
 readme = "README.md"
