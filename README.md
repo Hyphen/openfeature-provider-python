@@ -29,10 +29,28 @@ pip install openfeature-sdk hyphen-openfeature-provider
 ## Quick Start
 
 ```python
+from openfeature import api
 from openfeature_provider_hyphen import (
-    HyphenUser,
+    HyphenProvider,
+    HyphenProviderOptions,
     HyphenEvaluationContext
 )
+
+# Initialize provider options
+options = HyphenProviderOptions(
+    application="your-app-name",
+    environment="production"
+)
+
+# Create and set the provider
+provider = HyphenProvider(
+    public_key="your-public-key",
+    options=options
+)
+api.set_provider(provider)
+
+# Create a client
+client = api.get_client()
 
 # Create a user with all available fields
 user = HyphenUser(
