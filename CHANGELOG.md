@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v1.1.0 (2025-04-03)
+
+### Features
+
+- Update README ([#10](https://github.com/Hyphen/openfeature-provider-python/pull/10),
+  [`2953925`](https://github.com/Hyphen/openfeature-provider-python/commit/2953925ed49ddc04ea124235df84b84a6f5132b4))
+
+
 ## v1.0.0 (2025-04-01)
 
 ### Chores
